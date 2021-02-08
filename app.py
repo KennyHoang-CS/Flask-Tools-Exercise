@@ -1,13 +1,13 @@
-from flask import Flask, request, render_template, redirect, flash
+from flask import Flask, request, render_template, redirect, flash, session
 from flask_debugtoolbar import DebugToolbarExtension
 from surveys import *
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = "lol"
+app.config['SECRET_KEY'] = "its_a_secret!"
 app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 debug = DebugToolbarExtension(app)
 
-responses = []
+responses_key = "responses"
 survey = surveys.get("satisfaction")
 
 
@@ -19,6 +19,9 @@ def root():
 @app.route('/begin', methods=["POST"])
 def begin_survey():
     """Begin the survey."""
+    
+    # Begin the session to store user answers. 
+    session[responses_key] = []
     return redirect('/questions/0')
 
 
@@ -26,7 +29,11 @@ def begin_survey():
 def show_questions(number):
     """ Begin asking the questions. """
     
+    # What is the question # in the survey. 
     question = survey.questions[number]
+    
+    # Get the session that has the user's answers. 
+    responses = session.get(responses_key)
 
     # Do not skip the start page 
     if (responses is None):
@@ -50,7 +57,11 @@ def process_question():
 
     # Get the user answer choice for question. 
     choice = request.form['answer']
+    
+    # Add the answer to the responses and rebind the session. 
+    responses = session[responses_key]
     responses.append(choice)
+    session[responses_key] = responses 
 
     # If they reached the end of the survey, else keep funneling questions. 
     if (len(responses) == len(survey.questions)):
